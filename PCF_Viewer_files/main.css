@@ -105,3 +105,7 @@ body {
     display: block;
     transition: 0.3s;
   }
+
+  .file-properties {
+    color: #0066ff;
+  }
