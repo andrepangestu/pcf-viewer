@@ -1231,7 +1231,7 @@ function pcfLoader(camera, controls, fileLocation) {
           }
 
           //add Pipe properties to the Hidden Side Panel
-          var myPipeProp = document.getElementById('mySideWindow');
+          var myPipeProp = document.getElementById('fileProperties');
           myPipeProp.innerHTML += '<p>No of Pipe segments: ' + pipeCounter + '</p>';
           myPipeProp.innerHTML += '<p>No of Bends: ' + bendCounter + '</p>';
           myPipeProp.innerHTML += '<p>No of Flanges: ' + flangeCounter + '</p>';
