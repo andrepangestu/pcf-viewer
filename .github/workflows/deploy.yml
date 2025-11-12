@@ -24,13 +24,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set image tag
+        id: vars
+        run: echo "IMAGE_TAG=${{ secrets.DOCKER_IMAGE }}:${GITHUB_SHA}" >> $GITHUB_ENV
+
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_IMAGE }} .
+          docker build -t ${{ env.IMAGE_TAG }} .
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_IMAGE }}
+          docker push ${{ env.IMAGE_TAG }}
 
       - name: Deploy on Droplet via SSH (pull & run Docker)
         uses: appleboy/ssh-action@v1.0.3
@@ -40,7 +44,7 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
           script: |
-            docker pull ${{ secrets.DOCKER_IMAGE }}
+            docker pull ${{ env.IMAGE_TAG }}
             docker stop pcf-viewer || true
             docker rm pcf-viewer || true
-            docker run -d --name pcf-viewer -p 5000:3000 ${{ secrets.DOCKER_IMAGE }}
+            docker run -d --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
