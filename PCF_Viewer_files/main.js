@@ -483,6 +483,7 @@ function onTrimClick() {
 
         // Buat mesh untuk bagian pertama jika panjang > 0
         // Posisi tetap di startPoint (posisi awal objek)
+
         let mesh1 = null;
         if (part1Len > 0) {
           const geometry1 = new CylinderGeometry(
@@ -497,17 +498,20 @@ function onTrimClick() {
           geometry1.rotateX(Math.PI / 2);
           mesh1 = new Mesh(geometry1, mat.clone());
           mesh1.name = selectedObject.name || "Pipe";
-          if (selectedObject.userData) mesh1.userData = selectedObject.userData;
-          // Posisi tetap di posisi awal objek
+          // Update userData: clone, lalu update panjang (itemData[2])
+          if (selectedObject.userData) {
+            let userDataArr = selectedObject.userData.split(",");
+            let originalLength = parseFloat(userDataArr[2]);
+            let halfLength = (originalLength / 2).toFixed(2);
+            userDataArr[2] = halfLength;
+            mesh1.userData = userDataArr.join(",");
+          }
           mesh1.position.copy(startPoint);
           mesh1.rotation.copy(selectedObject.rotation);
           mesh1.quaternion.copy(selectedObject.quaternion);
           mesh1.scale.copy(selectedObject.scale);
         }
 
-        // Buat mesh untuk bagian kedua jika panjang > 0
-        // Posisi juga tetap di startPoint (posisi awal objek)
-        // Tapi geometry-nya di-offset agar mulai dari titik split
         let mesh2 = null;
         if (part2Len > 0) {
           const geometry2 = new CylinderGeometry(
@@ -518,17 +522,18 @@ function onTrimClick() {
             geom.parameters.heightSegments || 1,
             geom.parameters.openEnded || false
           );
-          // Offset geometry agar bagian kedua mulai dari titik split
-          // Setelah translate(0, part2Len/2, 0), center geometry di part2Len/2
-          // Kita perlu offset tambahan part1Len agar bottom geometry di part1Len
-          // Jadi total offset: part2Len/2 + part1Len
           geometry2.translate(0, part2Len / 2 + part1Len, 0);
           geometry2.rotateX(Math.PI / 2);
           mesh2 = new Mesh(geometry2, mat.clone());
           mesh2.name = selectedObject.name || "Pipe";
-          if (selectedObject.userData) mesh2.userData = selectedObject.userData;
-          // Posisi tetap di posisi awal objek (sama dengan mesh1)
-          // Geometry sudah di-offset, jadi bagian kedua akan mulai dari titik split
+          // Update userData: clone, lalu update panjang (itemData[2])
+          if (selectedObject.userData) {
+            let userDataArr = selectedObject.userData.split(",");
+            let originalLength = parseFloat(userDataArr[2]);
+            let halfLength = (originalLength / 2).toFixed(2);
+            userDataArr[2] = halfLength;
+            mesh2.userData = userDataArr.join(",");
+          }
           mesh2.position.copy(startPoint);
           mesh2.rotation.copy(selectedObject.rotation);
           mesh2.quaternion.copy(selectedObject.quaternion);
