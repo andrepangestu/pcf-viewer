@@ -28,9 +28,9 @@ jobs:
         id: vars
         run: echo "IMAGE_TAG=${{ secrets.DOCKER_IMAGE }}:${GITHUB_SHA}" >> $GITHUB_ENV
 
-      - name: Build Docker image
+      - name: Build Docker image (no cache)
         run: |
-          docker build -t ${{ env.IMAGE_TAG }} .
+          docker build --no-cache -t ${{ env.IMAGE_TAG }} .
 
       - name: Push Docker image
         run: |
@@ -50,4 +50,8 @@ jobs:
             docker container prune -f
             docker image prune -f
             docker system prune -f
-            docker run -d --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
+            docker run -d --pull always --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
+            echo '--- Running containers:'
+            docker ps
+            echo '--- Image details:'
+            docker inspect ${{ env.IMAGE_TAG }}
