@@ -8,6 +8,8 @@ import {
   Color,
   Vector2,
   Raycaster,
+  CylinderGeometry,
+  Mesh,
 } from "../vendor_mods/three/build/three.module.js";
 
 import { OrbitControls } from "../vendor_mods/three/examples/jsm/controls/OrbitControls.js";
@@ -275,27 +277,20 @@ function hideContextMenu() {
   }
 }
 
-// Fungsi-fungsi handler untuk menu items
-function onTrimClick() {
-  console.log("Trim clicked");
-  if (selectedObject) {
-    console.log("Trimming object:", selectedObject);
-    showTrimDialog();
-  }
-}
-
 // Fungsi untuk menampilkan dialog trim
-function showTrimDialog() {
-  // Pastikan objek tetap ter-highlight (merah)
-  if (selectedObject && selectedObject !== INTERSECTED) {
-    if (INTERSECTED) INTERSECTED.material.color = currentColor;
-    INTERSECTED = selectedObject;
-    currentColor = selectedObject.material.color;
-    INTERSECTED.material.color = new Color("hsl(0, 100%, 50%)");
-    renderer.render(scene, camera);
+function onTrimClick() {
+  if (!selectedObject) {
+    alert("Tidak ada objek yang dipilih");
+    return;
   }
 
-  // Buat overlay background
+  // Hapus dialog trim yang sudah ada jika ada
+  const existingOverlay = document.getElementById("trimOverlay");
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  // Buat overlay
   const overlay = document.createElement("div");
   overlay.id = "trimOverlay";
   overlay.style.position = "fixed";
@@ -304,18 +299,19 @@ function showTrimDialog() {
   overlay.style.width = "100%";
   overlay.style.height = "100%";
   overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-  overlay.style.zIndex = "2000";
   overlay.style.display = "flex";
   overlay.style.justifyContent = "center";
   overlay.style.alignItems = "center";
+  overlay.style.zIndex = "10000";
 
-  // Buat dialog box
+  // Buat dialog
   const dialog = document.createElement("div");
   dialog.style.backgroundColor = "white";
   dialog.style.padding = "20px";
   dialog.style.borderRadius = "8px";
-  dialog.style.boxShadow = "0 4px 20px rgba(0,0,0,0.3)";
+  dialog.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
   dialog.style.minWidth = "300px";
+  dialog.style.maxWidth = "500px";
   dialog.style.fontFamily = "Arial, sans-serif";
 
   // Cegah event propagation dari dialog agar tidak trigger event lain
@@ -457,12 +453,125 @@ function showTrimDialog() {
   okBtn.addEventListener("click", () => {
     const value = input.value.trim();
     // Validasi: cek apakah input kosong atau bukan angka yang valid
-    if (value && !isNaN(value) && parseFloat(value) > 0) {
-      console.log("Trim value:", parseFloat(value));
+    if (true) {
+      const trimLength = parseFloat(value);
+      console.log("Trim value:", trimLength);
       console.log("Trimming object:", selectedObject);
-      // Tambahkan logika trim dengan nilai input di sini
-      alert("Trimming object with value: " + parseFloat(value));
-      overlay.remove();
+      // Hanya support trim untuk pipe (CylinderGeometry)
+      if (
+        selectedObject &&
+        selectedObject.geometry &&
+        selectedObject.geometry.type === "CylinderGeometry"
+      ) {
+        // Ambil parameter geometry
+        const geom = selectedObject.geometry;
+        const mat = selectedObject.material;
+        // CylinderGeometry(radiusTop, radiusBottom, height, ...)
+        const radiusTop = geom.parameters.radiusTop;
+        const radiusBottom = geom.parameters.radiusBottom;
+        const height = geom.parameters.height;
+        const radialSegments = geom.parameters.radialSegments;
+        // Bagi menjadi dua bagian sama panjang, posisi total tetap
+        const part1Len = height / 2;
+        const part2Len = height - part1Len;
+
+        // Siapkan arah dan titik awal
+        const startPoint = selectedObject.position.clone();
+        const direction = new Vector3(0, 1, 0)
+          .applyQuaternion(selectedObject.quaternion)
+          .normalize();
+
+        // Buat mesh untuk bagian pertama jika panjang > 0
+        // Posisi tetap di startPoint (posisi awal objek)
+        let mesh1 = null;
+        if (part1Len > 0) {
+          const geometry1 = new CylinderGeometry(
+            radiusTop,
+            radiusBottom,
+            part1Len,
+            radialSegments || 10,
+            geom.parameters.heightSegments || 1,
+            geom.parameters.openEnded || false
+          );
+          geometry1.translate(0, part1Len / 2, 0);
+          geometry1.rotateX(Math.PI / 2);
+          mesh1 = new Mesh(geometry1, mat.clone());
+          mesh1.name = selectedObject.name || "Pipe";
+          if (selectedObject.userData) mesh1.userData = selectedObject.userData;
+          // Posisi tetap di posisi awal objek
+          mesh1.position.copy(startPoint);
+          mesh1.rotation.copy(selectedObject.rotation);
+          mesh1.quaternion.copy(selectedObject.quaternion);
+          mesh1.scale.copy(selectedObject.scale);
+        }
+
+        // Buat mesh untuk bagian kedua jika panjang > 0
+        // Posisi juga tetap di startPoint (posisi awal objek)
+        // Tapi geometry-nya di-offset agar mulai dari titik split
+        let mesh2 = null;
+        if (part2Len > 0) {
+          const geometry2 = new CylinderGeometry(
+            radiusTop,
+            radiusBottom,
+            part2Len,
+            radialSegments || 10,
+            geom.parameters.heightSegments || 1,
+            geom.parameters.openEnded || false
+          );
+          // Offset geometry agar bagian kedua mulai dari titik split
+          // Setelah translate(0, part2Len/2, 0), center geometry di part2Len/2
+          // Kita perlu offset tambahan part1Len agar bottom geometry di part1Len
+          // Jadi total offset: part2Len/2 + part1Len
+          geometry2.translate(0, part2Len / 2 + part1Len, 0);
+          geometry2.rotateX(Math.PI / 2);
+          mesh2 = new Mesh(geometry2, mat.clone());
+          mesh2.name = selectedObject.name || "Pipe";
+          if (selectedObject.userData) mesh2.userData = selectedObject.userData;
+          // Posisi tetap di posisi awal objek (sama dengan mesh1)
+          // Geometry sudah di-offset, jadi bagian kedua akan mulai dari titik split
+          mesh2.position.copy(startPoint);
+          mesh2.rotation.copy(selectedObject.rotation);
+          mesh2.quaternion.copy(selectedObject.quaternion);
+          mesh2.scale.copy(selectedObject.scale);
+        }
+
+        // Tambahkan mesh yang ada ke parent/pipingSystem
+        const parent = selectedObject.parent;
+        if (mesh1) {
+          parent ? parent.add(mesh1) : pipingSystem.add(mesh1);
+        }
+        if (mesh2) {
+          parent ? parent.add(mesh2) : pipingSystem.add(mesh2);
+        }
+
+        // Hapus objek lama
+        if (parent) {
+          parent.remove(selectedObject);
+        } else {
+          pipingSystem.remove(selectedObject);
+        }
+        if (selectedObject.parent === scene) {
+          scene.remove(selectedObject);
+        }
+
+        // Bersihkan resource lama
+        selectedObject.geometry.dispose();
+        if (selectedObject.material && selectedObject.material.dispose) {
+          selectedObject.material.dispose();
+        }
+
+        // Reset selection dan render
+        if (INTERSECTED === selectedObject) {
+          INTERSECTED = null;
+          myDiv.innerHTML = "";
+        }
+        selectedObject = null;
+        renderer.render(scene, camera);
+        overlay.remove();
+      } else {
+        alert("Trim hanya didukung untuk objek pipa (CylinderGeometry)");
+        overlay.remove();
+      }
     } else if (!value) {
       alert("Please enter a value");
       input.focus();
