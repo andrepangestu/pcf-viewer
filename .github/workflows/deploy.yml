@@ -43,4 +43,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_IMAGE }}
             docker stop pcf-viewer || true
             docker rm pcf-viewer || true
-            docker run -d --name pcf-viewer -p 80:3000 ${{ secrets.DOCKER_IMAGE }}
+            docker run -d --name pcf-viewer -p 5000:3000 ${{ secrets.DOCKER_IMAGE }}
