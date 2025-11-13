@@ -108,9 +108,6 @@ function render() {
   const intersects = raycaster.intersectObjects(pipingSystem.children, false);
 
   if (intersects.length > 0) {
-    //console.log(intersects[0].object);
-    console.log(intersects[0].object.userData);
-
     if (INTERSECTED != intersects[0].object) {
       if (INTERSECTED) INTERSECTED.material.color = currentColor;
 

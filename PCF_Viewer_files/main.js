@@ -505,7 +505,6 @@ function onTrimClick() {
             let halfLength = (originalLength / 2).toFixed(2);
             userDataArr[2] = halfLength;
             mesh1.userData = userDataArr.join(",");
-            console.log("Updated userData:", mesh1.userData);
           }
           mesh1.position.copy(startPoint);
           mesh1.rotation.copy(selectedObject.rotation);
@@ -534,7 +533,6 @@ function onTrimClick() {
             let halfLength = (originalLength / 2).toFixed(2);
             userDataArr[2] = halfLength;
             mesh2.userData = userDataArr.join(",");
-            console.log("Updated userData:", mesh2.userData);
           }
           mesh2.position.copy(startPoint);
           mesh2.rotation.copy(selectedObject.rotation);

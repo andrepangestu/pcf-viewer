@@ -51,6 +51,8 @@ jobs:
             docker image prune -f
             docker system prune -f
             docker run -d --pull always --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
+            echo 'Waiting 15 seconds for container to fully start...'
+            sleep 15
             echo '--- Running containers:'
             docker ps
             echo '--- Image details:'

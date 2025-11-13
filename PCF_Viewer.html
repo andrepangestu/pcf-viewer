@@ -2689,10 +2689,9 @@
           const file = e.target.files[0];
           if (!file) return;
           const reader = new FileReader();
-          console.log("TEST");
+
           reader.onload = function (event) {
             const pcfText = event.target.result;
-            console.log(pcfText);
             //pipingSystem to be loaded here
 
             init(pcfText);
