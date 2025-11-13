@@ -38,6 +38,8 @@ jobs:
 
       - name: Deploy to Remote Server via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
