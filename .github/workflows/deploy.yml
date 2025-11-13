@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean Droplet
+name: CI/CD Docker Deploy
 
 on:
   push:
@@ -6,37 +6,37 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-deploy:
+    name: Build, Push, and Deploy Docker Image
     runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ secrets.DOCKER_IMAGE }}:${{ github.sha }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout Source
         uses: actions/checkout@v4
 
-      # Add build steps here if needed, e.g. npm install/build
-      # - name: Build project
+      # Optional: Add build steps here if your app needs to be built before dockerizing
+      # - name: Build App
       #   run: |
       #     npm install
       #     npm run build
 
-      - name: Log in to Docker Hub
+      - name: Log in to Docker Registry
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set image tag
-        id: vars
-        run: echo "IMAGE_TAG=${{ secrets.DOCKER_IMAGE }}:${GITHUB_SHA}" >> $GITHUB_ENV
-
-      - name: Build Docker image (no cache)
+      - name: Build Docker Image (no cache)
         run: |
-          docker build --no-cache -t ${{ env.IMAGE_TAG }} .
+          docker build --no-cache -t $IMAGE_TAG .
 
-      - name: Push Docker image
+      - name: Push Docker Image
         run: |
-          docker push ${{ env.IMAGE_TAG }}
+          docker push $IMAGE_TAG
 
-      - name: Deploy on Droplet via SSH (pull & run Docker)
+      - name: Deploy to Remote Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DO_HOST }}
@@ -45,19 +45,19 @@ jobs:
           port: ${{ secrets.DO_PORT }}
           script: |
             echo '--- Remove old image with same tag (if exists) ---'
-            docker rmi ${{ env.IMAGE_TAG }} || true
+            docker rmi $IMAGE_TAG || true
             echo '--- Pull latest image ---'
-            docker pull ${{ env.IMAGE_TAG }}
+            docker pull $IMAGE_TAG
             docker stop pcf-viewer || true
             docker rm pcf-viewer || true
             docker container prune -f
             docker image prune -f
             docker system prune -f
             echo '--- Run new container ---'
-            docker run -d --pull always --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
+            docker run -d --pull always --name pcf-viewer -p 5000:3000 $IMAGE_TAG
             echo 'Waiting 15 seconds for container to fully start...'
             sleep 15
             echo '--- Running containers:'
             docker ps
             echo '--- Image details:'
-            docker inspect ${{ env.IMAGE_TAG }}
+            docker inspect $IMAGE_TAG
