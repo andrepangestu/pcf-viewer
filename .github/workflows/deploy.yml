@@ -44,12 +44,16 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
           script: |
+            echo '--- Remove old image with same tag (if exists) ---'
+            docker rmi ${{ env.IMAGE_TAG }} || true
+            echo '--- Pull latest image ---'
             docker pull ${{ env.IMAGE_TAG }}
             docker stop pcf-viewer || true
             docker rm pcf-viewer || true
             docker container prune -f
             docker image prune -f
             docker system prune -f
+            echo '--- Run new container ---'
             docker run -d --pull always --name pcf-viewer -p 5000:3000 ${{ env.IMAGE_TAG }}
             echo 'Waiting 15 seconds for container to fully start...'
             sleep 15
