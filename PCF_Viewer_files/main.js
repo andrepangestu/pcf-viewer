@@ -1,3 +1,82 @@
+// Fungsi untuk menampilkan seluruh part properties ke #partProperties
+function renderAllPartProperties() {
+  const partDiv = document.getElementById("partProperties");
+  if (!partDiv || !pipingSystem) return;
+  let html = "";
+  let idx = 1;
+  pipingSystem.children.forEach((obj) => {
+    html += `<div style='margin-bottom:16px;border-bottom:1px solid #ccc;padding-bottom:8px;'>`;
+    html += `<b>Part #${idx}</b><br/>`;
+    // userData
+    if (obj.userData && Object.keys(obj.userData).length > 0) {
+      let itemData =
+        typeof obj.userData === "string" ? obj.userData.split(",") : [];
+      const propertyNames = [
+        "Part Type",
+        "Size",
+        "Length",
+        "Start X",
+        "Start Y",
+        "Start Z",
+        "End X",
+        "End Y",
+        "End Z",
+        "Reducer Size / Centre X",
+        "Centre Y",
+        "Centre Z",
+      ];
+      html +=
+        '<table style="border-collapse:collapse;width:100%;margin-bottom:4px;">';
+      for (let i = 0; i < itemData.length; i++) {
+        if (itemData[i] !== undefined && itemData[i] !== "") {
+          html += `<tr><td style='border:1px solid #ccc;padding:4px;'><b>${
+            propertyNames[i] || "Property " + (i + 1)
+          }</b></td><td style='border:1px solid #ccc;padding:4px;'>${
+            itemData[i]
+          }</td></tr>`;
+        }
+      }
+      html += "</table>";
+    }
+    // geometry
+    if (obj.geometry) {
+      html += `<b>Geometry</b><br/>`;
+      if (obj.geometry.type) html += `Type: ${obj.geometry.type}<br/>`;
+      if (obj.geometry.parameters) {
+        for (const [key, value] of Object.entries(obj.geometry.parameters)) {
+          html += `${key}: ${value}<br/>`;
+        }
+      }
+    }
+    // material
+    if (obj.material) {
+      html += `<b>Material</b><br/>`;
+      if (obj.material.type) html += `Type: ${obj.material.type}<br/>`;
+      if (obj.material.color)
+        html += `Color: ${
+          obj.material.color.getStyle
+            ? obj.material.color.getStyle()
+            : obj.material.color
+        }<br/>`;
+      if (obj.material.name) html += `Name: ${obj.material.name}<br/>`;
+    }
+    // name
+    if (obj.name) html += `Name: ${obj.name}<br/>`;
+    // position
+    if (obj.position) {
+      html += `<b>Position</b><br/>X: ${obj.position.x.toFixed(
+        2
+      )}, Y: ${obj.position.y.toFixed(2)}, Z: ${obj.position.z.toFixed(
+        2
+      )}<br/>`;
+    }
+    html += `</div>`;
+    idx++;
+  });
+  partDiv.innerHTML = html;
+}
+// Panggil fungsi ini setelah pipingSystem selesai di-load
+// Contoh: renderAllPartProperties();
 import {
   Object3D,
   Vector3,
@@ -76,6 +155,10 @@ function init(test) {
   pipingSystem = new pcfLoader(camera, controls, myFileLocation);
   scene.add(pipingSystem);
 
+  // Tampilkan seluruh part properties setelah pipingSystem selesai di-load
+  // Jika pcfLoader async, pastikan renderAllPartProperties dipanggil setelah data benar-benar siap
+  setTimeout(renderAllPartProperties, 500);
+
   // helper
   helper = new ViewHelper(camera, renderer, "bottom-left");
   helper.setControls(controls);
@@ -125,12 +208,8 @@ function onMouseDownEvent(event) {
   // Hanya proses jika ada objek yang diklik
   if (intersects.length > 0) {
     if (event.button === 0) {
-      // Klik kiri - tampilkan info dan highlight objek
-      console.log("Klik kiri pada objek terdeteksi");
       render();
     } else if (event.button === 2) {
-      // Klik kanan - tampilkan context menu
-      console.log("Klik kanan pada objek terdeteksi");
       selectedObject = intersects[0].object;
       showContextMenu(event.clientX, event.clientY);
       render();
@@ -163,46 +242,38 @@ function render() {
       //Clear myDiv so that it can show data for clicked item
       myDiv.innerHTML = "";
 
-      //Check if clicked item has userData with it
+      // Show part properties as a table
       if (Object.keys(intersects[0].object.userData).length > 0) {
         let itemData = intersects[0].object.userData.split(",");
-
-        myDiv.innerHTML += itemData[0];
-        myDiv.innerHTML += "<br />Size: " + itemData[1];
-
-        if (
-          itemData[0].includes("REDUCER") /*|| itemData[0].includes("BEND")*/
-        ) {
-          myDiv.innerHTML += " x " + itemData[9];
+        // Define property names (adjust as needed for your data structure)
+        const propertyNames = [
+          "Part Type",
+          "Size",
+          "Length",
+          "Start X",
+          "Start Y",
+          "Start Z",
+          "End X",
+          "End Y",
+          "End Z",
+          "Extra1",
+          "Extra2",
+          "Extra3",
+        ];
+        let table = '<table style="border-collapse:collapse;width:100%;">';
+        for (let i = 0; i < itemData.length; i++) {
+          if (itemData[i] !== undefined && itemData[i] !== "") {
+            table += `<tr><td style='border:1px solid #ccc;padding:4px;'><b>${
+              propertyNames[i] || "Property " + (i + 1)
+            }</b></td><td style='border:1px solid #ccc;padding:4px;'>${
+              itemData[i]
+            }</td></tr>`;
+          }
         }
-
-        if (itemData[0].includes("ELBOW") || itemData[0].includes("BEND")) {
-          //Just skip, nothing to add
-        } else {
-          myDiv.innerHTML += "<br />Length: " + itemData[2];
-        }
-
-        myDiv.innerHTML +=
-          "<br />Start: " +
-          itemData[3] +
-          ", " +
-          itemData[4] +
-          ", " +
-          itemData[5];
-        myDiv.innerHTML +=
-          "<br />End: " + itemData[6] + ", " + itemData[7] + ", " + itemData[8];
-
-        if (itemData[0].includes("Tee Header")) {
-          myDiv.innerHTML +=
-            "<br />Centre: " +
-            itemData[9] +
-            ", " +
-            itemData[10] +
-            ", " +
-            itemData[11];
-        }
+        table += "</table>";
+        myDiv.innerHTML = table;
       } else {
-        myDiv.innerHTML += "Info not available";
+        myDiv.innerHTML = "<i>Info not available</i>";
       }
     }
   } else {
